@@ -1,75 +1,63 @@
-import axios from 'axios';
-import { getItemsRequest } from '../requests';
+import '../bigUntestableCode';
+import App from '../app';
+import Loader from '../loader';
 
-jest.mock('axios');
+const app = new App();
 
-/**
- * Объект с успешно возвращёнными данными.
- * Отдельная константа, чтобы не повторять код в моке реализации и в проверке.
- */
-const mockedResponse = { result: 'ok' };
-
-/**
- * Объект ошибки для мока реализации.
- * Отдельная константа, чтобы не повторять код в моке реализации и в проверке.
- */
-const errorResponse = new Error('Error!');
-
-describe('Группа тестов.', () => {
+describe('DOM Manipulation', () => {
     beforeAll(() => {
-        axios.get
-            .mockImplementationOnce(
-                () => Promise.resolve(mockedResponse),
-            )
-            .mockImplementationOnce(
-                () => Promise.reject(errorResponse),
-            );
+        app.addApp();
     });
 
     afterAll(() => {
-        axios.get.mockRestore();
+        app.deleteApp();
     });
 
-    test('Первый тест.', () => {
-        expect(2 + 2).toEqual(4);
+    it('should add element into #app block', () => {
+        app.putHtmlInApp('some text');
+
+        expect(app).toMatchSnapshot();
     });
 
-    /**
-    * Два теста ниже, конечно синтетические.
-    * По сути, они проверяют только то, что наш мок работает и axios не делает реальный запрос за данными.
-    * Сделаны для примера того, как проверять успешный и неуспешный промис.
-    */
-    test('Запрос в axios должен разрешиться положительно.', () => (
-        expect(axios.get('http://example.com')).resolves.toEqual(mockedResponse)
-    ));
+    it('should show and hide loader element', () => {
+        const loader = new Loader();
 
-    test('Запрос в axios должен отклониться.', () => (
-        expect(axios.get('http://example.com')).rejects.toEqual(errorResponse)
-    ));
+        const loaderId = '#loader';
 
-    /**
-    * Тут более реальный пример тестирования:
-    *
-    * 1. Мы импортировали функцию, которую хотим протестировать.
-    * 2. Создали мок запроса axios с фейковыми данными.
-    * 3. Вызываем тестируемую функцию.
-    * 4. Проверяем, что промис, возвращаемый функцией, разрешается данными, которые мы передали в мок.
-    *
-    * Точно также можно тестировать rejected промисы.
-    */
-    test('Пример тестирования реального запроса (getItemsRequest).', () => {
-        const data = [{
-            id:    1,
-            title: 'Заголовок 1',
-        }, {
-            id:    2,
-            title: 'Заголовок 2',
-        }];
+        loader.openLoader();
 
-        axios.get.mockImplementationOnce(
-            () => Promise.resolve(data),
-        );
+        const queriedLoader = document.querySelector(loaderId);
 
-        return expect(getItemsRequest()).resolves.toEqual(data);
+        expect(queriedLoader).toBeDefined();
+        expect(queriedLoader.style.display).toBe('block');
+        expect(queriedLoader.textContent).toBe('Loading...');
+
+        loader.closeLoader();
+
+        expect(queriedLoader.style.display).toBe('none');
+    });
+
+    // This test not mine
+
+    it('should call callbacks that added to buttons', () => {
+        let buttonTemplates = '';
+        const buttonClickHandler = jest.fn();
+
+        for (let i = 0; i < 5; i += 1) {
+            buttonTemplates = buttonTemplates.concat('<button></button>');
+        }
+
+        app.putHtmlInApp(buttonTemplates);
+
+        const buttonElements = document.querySelectorAll('button');
+
+        expect(buttonElements).not.toBeNull();
+        expect(buttonElements.length).toBe(5);
+
+        app.addEventListenersToButtons(buttonClickHandler);
+        buttonElements.forEach((button) => { button.click(); });
+
+        expect(buttonClickHandler).toBeCalled();
+        expect(buttonClickHandler).toHaveBeenCalledTimes(5);
     });
 });
